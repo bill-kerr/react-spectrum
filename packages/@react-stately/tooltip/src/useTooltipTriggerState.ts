@@ -42,7 +42,7 @@ let globalCooldownTimeout = null;
  * the delay for showing a tooltip.
  */
 export function useTooltipTriggerState(props: TooltipTriggerProps = {}): TooltipTriggerState {
-  let {delay = TOOLTIP_DELAY} = props;
+  let {delay = TOOLTIP_DELAY, closeDelay = TOOLTIP_COOLDOWN} = props;
   let {isOpen, open, close} = useOverlayTriggerState(props);
   let id = useMemo(() => `${++tooltipId}`, []);
   let closeTimeout = useRef<ReturnType<typeof setTimeout>>();
@@ -78,15 +78,16 @@ export function useTooltipTriggerState(props: TooltipTriggerProps = {}): Tooltip
   };
 
   let hideTooltip = (immediate?: boolean) => {
-    if (immediate) {
+    if (immediate || closeDelay <= 0) {
       clearTimeout(closeTimeout.current);
       closeTimeout.current = null;
       close();
     } else if (!closeTimeout.current) {
       closeTimeout.current = setTimeout(() => {
+        clearTimeout(closeTimeout.current);
         closeTimeout.current = null;
         close();
-      }, TOOLTIP_COOLDOWN);
+      }, closeDelay);
     }
 
     if (globalWarmUpTimeout) {
@@ -101,7 +102,7 @@ export function useTooltipTriggerState(props: TooltipTriggerProps = {}): Tooltip
         delete tooltips[id];
         globalCooldownTimeout = null;
         globalWarmedUp = false;
-      }, TOOLTIP_COOLDOWN);
+      }, closeDelay);
     }
   };
 
